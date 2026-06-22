@@ -1,0 +1,30 @@
+{
+  "app": {
+    "name": "E-Ticketing Helpdesk UTS",
+    "version": "1.0",
+    "supportEmail": "helpdesk@uts.ac.id"
+  },
+  "ticketCategories": [
+    "Akademik",
+    "Keuangan",
+    "Sarana & Prasarana",
+    "Sistem Informasi",
+    "Lainnya"
+  ],
+  "ticketPriorities": [
+    "Rendah",
+    "Sedang",
+    "Tinggi",
+    "Mendesak"
+  ],
+  "faq": [
+    {
+      "question": "Berapa lama tiket saya diproses?",
+      "answer": "Tiket diproses maksimal 2x24 jam pada hari kerja."
+    },
+    {
+      "question": "Bagaimana cara melihat status tiket?",
+      "answer": "Buka menu Dashboard, lalu pilih tiket yang ingin dilihat statusnya."
+    }
+  ]
+}

@@ -1,0 +1,587 @@
+openapi: 3.0.3
+info:
+  title: E-Ticketing Helpdesk UTS API
+  description: |
+    Dokumentasi REST API untuk aplikasi **E-Ticketing Helpdesk UTS** (Android / Jetpack Compose).
+
+    Spesifikasi ini disusun untuk memenuhi UAS (Teori) — *Dokumentasi backend API* — dan dapat
+    di-load langsung ke **Swagger UI / Swagger Editor** untuk di-capture / screenshot.
+
+    ## Cara membuka di Swagger
+    1. Buka https://editor.swagger.io
+    2. Menu **File > Import file**, pilih `docs/openapi.yaml`
+    3. Tampilan dokumentasi interaktif siap untuk di-screenshot.
+
+    ## Autentikasi
+    Seluruh endpoint (kecuali `login` & `register`) memerlukan header:
+    `Authorization: Bearer <token>`
+
+    ## Format respons standar
+    ```json
+    { "success": true, "message": "string", "data": { } }
+    ```
+    ## Akun Demo
+    | Role     | Username   | Password |
+    |----------|------------|----------|
+    | USER     | ahmad      | 123456   |
+    | USER     | siti       | 123456   |
+    | USER     | budi       | 123456   |
+    | HELPDESK | helpdesk   | 123456   |
+    | HELPDESK | arif       | 123456   |
+    | ADMIN    | admin      | 123456   |
+  version: 1.0.0
+  contact:
+    name: Tim E-Ticketing Helpdesk UTS
+servers:
+  - url: https://api.helpdesk-uts.ac.id
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Autentikasi
+    description: Login, registrasi, dan reset password
+  - name: Tiket
+    description: Manajemen tiket helpdesk
+  - name: Komentar
+    description: Balasan / diskusi pada tiket
+  - name: Notifikasi
+    description: Notifikasi dalam aplikasi
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Autentikasi]
+      summary: Login pengguna
+      description: Autentikasi dengan username & password. Mengembalikan token Bearer dan data user.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: ahmad
+              password: "123456"
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                success: true
+                message: Login berhasil
+                data:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    id: U-001
+                    name: Ahmad Dani
+                    username: ahmad
+                    email: ahmad@campus.ac.id
+                    role: USER
+        '401':
+          description: Username atau password salah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Username atau password salah
+                data: null
+
+  /api/auth/register:
+    post:
+      tags: [Autentikasi]
+      summary: Registrasi pengguna baru
+      description: Membuat akun baru dengan role default USER.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: Dewi Lestari
+              username: dewi
+              email: dewi@campus.ac.id
+              password: "123456"
+      responses:
+        '201':
+          description: Registrasi berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validasi gagal (username sudah dipakai / email tidak valid)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Username sudah digunakan
+                data: null
+
+  /api/auth/reset-password:
+    post:
+      tags: [Autentikasi]
+      summary: Reset password via email
+      description: Mengirim instruksi reset password ke email terdaftar.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: ahmad@campus.ac.id
+      responses:
+        '200':
+          description: Instruksi reset terkirim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                success: true
+                message: Instruksi reset password telah dikirim ke email Anda
+                data: null
+
+  /api/tickets:
+    get:
+      tags: [Tiket]
+      summary: Ambil daftar tiket
+      description: |
+        Mengambil daftar tiket sesuai role:
+        - **USER** hanya melihat tiket miliknya sendiri.
+        - **HELPDESK / ADMIN** melihat semua tiket.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter berdasarkan status tiket
+          schema:
+            $ref: '#/components/schemas/TicketStatus'
+        - name: search
+          in: query
+          required: false
+          description: Pencarian berdasarkan judul / deskripsi
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Daftar tiket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: OK }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Tiket]
+      summary: Buat tiket baru
+      description: Membuat tiket baru. Otomatis menghasilkan notifikasi "Tiket Baru".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+            example:
+              title: Koneksi Internet Putus
+              description: Internet di lantai 2 mati total.
+              attachmentSource: FILE
+              attachmentName: log-internet.png
+      responses:
+        '201':
+          description: Tiket berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Tiket berhasil dibuat }
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tickets/{id}:
+    get:
+      tags: [Tiket]
+      summary: Detail tiket
+      description: Mengambil satu tiket beserta komentar dan riwayat aktivitasnya.
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: Detail tiket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: OK }
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/tickets/{id}/status:
+    patch:
+      tags: [Tiket]
+      summary: Ubah status tiket (Helpdesk/Admin)
+      description: |
+        Memperbarui status tiket. Hanya untuk role **HELPDESK** atau **ADMIN**.
+        Otomatis menambahkan aktivitas & notifikasi perubahan status.
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/TicketStatus'
+            example:
+              status: IN_PROGRESS
+      responses:
+        '200':
+          description: Status diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Status tiket diperbarui }
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/tickets/{id}/assign:
+    patch:
+      tags: [Tiket]
+      summary: Tugaskan tiket ke petugas (Admin)
+      description: Meng-assign tiket ke petugas helpdesk. Hanya untuk role **ADMIN**.
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignee]
+              properties:
+                assignee:
+                  type: string
+                  description: Nama / id petugas helpdesk
+            example:
+              assignee: Rina Helpdesk
+      responses:
+        '200':
+          description: Tiket berhasil ditugaskan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Tiket ditugaskan ke Rina Helpdesk }
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/tickets/{id}/comments:
+    post:
+      tags: [Komentar]
+      summary: Tambah komentar / balasan
+      description: Menambahkan komentar pada tiket. Otomatis membuat aktivitas & notifikasi.
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+            example:
+              message: Internet mati sejak pagi.
+      responses:
+        '201':
+          description: Komentar ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Komentar ditambahkan }
+                  data:
+                    $ref: '#/components/schemas/Comment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/notifications:
+    get:
+      tags: [Notifikasi]
+      summary: Ambil daftar notifikasi
+      description: Daftar notifikasi pengguna, diurutkan terbaru di atas.
+      responses:
+        '200':
+          description: Daftar notifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: OK }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppNotification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/notifications/read-all:
+    patch:
+      tags: [Notifikasi]
+      summary: Tandai semua notifikasi terbaca
+      description: Mengubah seluruh notifikasi menjadi isRead = true.
+      responses:
+        '200':
+          description: Semua notifikasi ditandai terbaca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                success: true
+                message: Semua notifikasi ditandai sebagai terbaca
+                data: null
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TicketId:
+      name: id
+      in: path
+      required: true
+      description: ID tiket (contoh T-001)
+      schema:
+        type: string
+        example: T-001
+
+  responses:
+    Unauthorized:
+      description: Token tidak valid / belum login
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Tidak terautentikasi
+            data: null
+    Forbidden:
+      description: Role tidak diizinkan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Akses ditolak untuk role Anda
+            data: null
+    NotFound:
+      description: Data tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Tiket tidak ditemukan
+            data: null
+    BadRequest:
+      description: Validasi input gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Judul minimal 5 karakter
+            data: null
+
+  schemas:
+    TicketStatus:
+      type: string
+      enum: [OPEN, IN_PROGRESS, CLOSED]
+      description: Status tiket
+    UserRole:
+      type: string
+      enum: [USER, HELPDESK, ADMIN]
+      description: Peran pengguna
+    AttachmentSource:
+      type: string
+      enum: [NONE, CAMERA, FILE]
+      description: Sumber lampiran
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, example: ahmad }
+        password: { type: string, format: password, example: "123456" }
+
+    RegisterRequest:
+      type: object
+      required: [name, username, email, password]
+      properties:
+        name: { type: string, example: Dewi Lestari }
+        username: { type: string, minLength: 3, example: dewi }
+        email: { type: string, format: email, example: dewi@campus.ac.id }
+        password: { type: string, format: password, minLength: 6, example: "123456" }
+
+    CreateTicketRequest:
+      type: object
+      required: [title, description]
+      properties:
+        title: { type: string, minLength: 5, maxLength: 100, example: Koneksi Internet Putus }
+        description: { type: string, minLength: 10, maxLength: 1000, example: Internet di lantai 2 mati total. }
+        attachmentSource:
+          $ref: '#/components/schemas/AttachmentSource'
+        attachmentName: { type: string, nullable: true, example: log-internet.png }
+
+    AppUser:
+      type: object
+      properties:
+        id: { type: string, example: U-001 }
+        name: { type: string, example: Ahmad Dani }
+        username: { type: string, example: ahmad }
+        email: { type: string, format: email, example: ahmad@campus.ac.id }
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    Comment:
+      type: object
+      properties:
+        id: { type: string, example: C-001 }
+        sender: { type: string, example: Ahmad Dani }
+        message: { type: string, example: Internet mati sejak pagi. }
+        timestamp: { type: string, example: "2026-04-08 09:02" }
+
+    TicketActivity:
+      type: object
+      properties:
+        id: { type: string, example: A-001 }
+        title: { type: string, example: Tiket dibuat }
+        actor: { type: string, example: Ahmad Dani }
+        timestamp: { type: string, example: "2026-04-08 09:00" }
+
+    Ticket:
+      type: object
+      properties:
+        id: { type: string, example: T-001 }
+        title: { type: string, example: Koneksi Internet Putus }
+        description: { type: string, example: Internet di lantai 2 mati total. }
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        createdAt: { type: string, example: "2026-04-08 09:00" }
+        applicantId: { type: string, example: U-001 }
+        applicant: { type: string, example: Ahmad Dani }
+        assignedTo: { type: string, nullable: true, example: Rina Helpdesk }
+        attachmentSource:
+          $ref: '#/components/schemas/AttachmentSource'
+        attachmentName: { type: string, nullable: true, example: log-internet.png }
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketActivity'
+
+    AppNotification:
+      type: object
+      properties:
+        id: { type: string, example: N-001 }
+        title: { type: string, example: Update Status }
+        message: { type: string, example: T-002 sedang ditangani helpdesk }
+        timestamp: { type: string, example: "2026-04-07 14:50" }
+        ticketId: { type: string, nullable: true, example: T-002 }
+        isRead: { type: boolean, example: false }
+
+    AuthResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: Login berhasil }
+        data:
+          type: object
+          properties:
+            token: { type: string }
+            user:
+              $ref: '#/components/schemas/AppUser'
+
+    MessageResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+        data: { nullable: true, example: null }
+
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string, example: Terjadi kesalahan }
+        data: { nullable: true, example: null }
+
+security:
+  - bearerAuth: []

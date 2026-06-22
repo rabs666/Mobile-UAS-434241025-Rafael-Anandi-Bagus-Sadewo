@@ -13,3 +13,17 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release signing (Modul 7) - jangan commit keystore & kredensial
+keys.jks
+*.jks
+keystore.properties
+
+# Build logs & scratch output (bukan deliverable)
+*.log
+build_output.txt
+buildoutput.txt
+build_result.txt
+/.vscode
+/.idea/markdown.xml
+/.idea/vcs.xml

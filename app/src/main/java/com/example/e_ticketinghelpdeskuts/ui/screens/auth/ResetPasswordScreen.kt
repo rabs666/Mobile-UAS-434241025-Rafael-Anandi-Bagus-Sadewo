@@ -3,7 +3,6 @@ package com.example.e_ticketinghelpdeskuts.ui.screens.auth
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,10 +16,6 @@ import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
 fun ResetPasswordScreen(navController: NavController, viewModel: TicketViewModel) {
     var email by remember { mutableStateOf("") }
     val authMessage by viewModel.authMessage.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.clearAuthMessage()
-    }
 
     Scaffold(
         topBar = {
@@ -51,6 +46,12 @@ fun ResetPasswordScreen(navController: NavController, viewModel: TicketViewModel
                 text = "Masukkan email Anda untuk menerima instruksi reset password.",
                 style = MaterialTheme.typography.bodyMedium
             )
+            
+            authMessage?.let { message ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = message, color = MaterialTheme.colorScheme.primary)
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
             OutlinedTextField(
                 value = email,
@@ -58,20 +59,15 @@ fun ResetPasswordScreen(navController: NavController, viewModel: TicketViewModel
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            authMessage?.let { message ->
-                Spacer(modifier = Modifier.height(12.dp))
-                AssistChip(
-                    onClick = {},
-                    label = { Text(message) },
-                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) }
-                )
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { viewModel.resetPassword(email) },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { 
+                    if (viewModel.resetPassword(email)) {
+                        // Keep on screen to show success message or navigate back
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = email.isNotBlank()
             ) {
                 Text("Kirim Instruksi")
             }

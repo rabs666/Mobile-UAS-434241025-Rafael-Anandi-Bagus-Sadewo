@@ -1,19 +1,6 @@
 package com.example.e_ticketinghelpdeskuts.domain.model
 
-data class AppUser(
-    val id: String,
-    val name: String,
-    val username: String,
-    val email: String,
-    val password: String,
-    val role: UserRole
-)
-
-enum class UserRole {
-    USER,
-    HELPDESK,
-    ADMIN
-}
+import java.util.UUID
 
 data class Ticket(
     val id: String,
@@ -23,9 +10,9 @@ data class Ticket(
     val createdAt: String,
     val applicantId: String,
     val applicant: String,
+    val assignedTo: String? = null,
     val attachmentSource: AttachmentSource = AttachmentSource.NONE,
     val attachmentName: String? = null,
-    val assignedTo: String? = null,
     val comments: List<Comment> = emptyList(),
     val activities: List<TicketActivity> = emptyList()
 )
@@ -44,14 +31,32 @@ data class TicketActivity(
     val timestamp: String
 )
 
-enum class AttachmentSource {
-    NONE,
-    CAMERA,
-    FILE
-}
+data class AppUser(
+    val id: String,
+    val name: String,
+    val username: String,
+    val email: String,
+    val password: String,
+    val role: UserRole
+)
+
+data class AppNotification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val timestamp: String,
+    val ticketId: String? = null,
+    val isRead: Boolean = false
+)
 
 enum class TicketStatus {
-    OPEN,
-    IN_PROGRESS,
-    CLOSED
+    OPEN, IN_PROGRESS, CLOSED
+}
+
+enum class UserRole {
+    USER, HELPDESK, ADMIN
+}
+
+enum class AttachmentSource {
+    NONE, CAMERA, FILE
 }

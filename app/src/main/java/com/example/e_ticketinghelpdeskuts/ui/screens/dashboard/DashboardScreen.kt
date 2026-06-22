@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.e_ticketinghelpdeskuts.domain.model.TicketStatus
-import com.example.e_ticketinghelpdeskuts.domain.model.UserRole
 import com.example.e_ticketinghelpdeskuts.ui.navigation.Screen
 import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
 
@@ -24,9 +23,9 @@ import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
 @Composable
 fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
     val tickets by viewModel.tickets.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
-
+    
+    // Hitung statistik secara real-time
     val totalCount = tickets.size
     val openCount = tickets.count { it.status == TicketStatus.OPEN }
     val progressCount = tickets.count { it.status == TicketStatus.IN_PROGRESS }
@@ -38,13 +37,7 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
                 title = { Text("E-Helpdesk") },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.Notifications.route) }) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge { Text(unreadCount.toString()) }
-                                }
-                            }
-                        ) {
+                        BadgedBox(badge = { if (unreadCount > 0) Badge { Text(unreadCount.toString()) } }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                         }
                     }
@@ -55,10 +48,8 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
             )
         },
         floatingActionButton = {
-            if (currentUser?.role == UserRole.USER) {
-                FloatingActionButton(onClick = { navController.navigate(Screen.CreateTicket.route) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Ticket")
-                }
+            FloatingActionButton(onClick = { navController.navigate(Screen.CreateTicket.route) }) {
+                Icon(Icons.Default.Add, contentDescription = "Create Ticket")
             }
         }
     ) { padding ->
@@ -68,20 +59,11 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            currentUser?.let { user ->
-                Text(
-                    text = "Halo, ${user.name} (${viewModel.roleLabel(user.role)})",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
             Text(text = "Ringkasan Tiket", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(16.dp))
-
+            
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.height(220.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -90,12 +72,12 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
                 item { StatCard("In Progress", progressCount.toString(), Icons.Default.Build, MaterialTheme.colorScheme.secondary) }
                 item { StatCard("Selesai", closedCount.toString(), Icons.Default.CheckCircle, MaterialTheme.colorScheme.tertiary) }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
             Text(text = "Aksi Cepat", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
-
+            
             OutlinedButton(
                 onClick = { navController.navigate(Screen.TicketList.route) },
                 modifier = Modifier.fillMaxWidth()
@@ -103,18 +85,6 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Lihat Riwayat Tiket")
-            }
-
-            if (currentUser?.role == UserRole.USER) {
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { navController.navigate(Screen.CreateTicket.route) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Buat Tiket Baru")
-                }
             }
         }
     }

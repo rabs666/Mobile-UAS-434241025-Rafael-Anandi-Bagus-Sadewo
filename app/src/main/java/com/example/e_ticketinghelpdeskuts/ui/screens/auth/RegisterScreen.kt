@@ -4,16 +4,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.e_ticketinghelpdeskuts.ui.navigation.Screen
 import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
+import com.example.e_ticketinghelpdeskuts.ui.utils.InputValidation
 
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: TicketViewModel) {
@@ -22,8 +24,20 @@ fun RegisterScreen(navController: NavController, viewModel: TicketViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var localError by remember { mutableStateOf<String?>(null) }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    
     val authMessage by viewModel.authMessage.collectAsState()
+    
+    // Validation checks
+    val nameError = if (name.isBlank()) "Nama lengkap harus diisi" else null
+    val usernameError = if (username.isBlank()) "Username harus diisi" else if (username.length < 3) "Username minimal 3 karakter" else null
+    val emailError = InputValidation.getEmailError(email)
+    val passwordError = InputValidation.getPasswordError(password)
+    val confirmPasswordError = if (confirmPassword.isBlank()) "Konfirmasi password harus diisi" else if (password != confirmPassword) "Password tidak cocok" else null
+    
+    val isFormValid = nameError == null && usernameError == null && emailError == null && passwordError == null && confirmPasswordError == null
 
     LaunchedEffect(Unit) {
         viewModel.clearAuthMessage()
@@ -35,79 +49,157 @@ fun RegisterScreen(navController: NavController, viewModel: TicketViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        Text(text = "Register", style = MaterialTheme.typography.headlineLarge)
-        Spacer(modifier = Modifier.height(32.dp))
+        Text(text = "Buat Akun Baru", style = MaterialTheme.typography.headlineLarge)
+        Text(text = "Daftar untuk menggunakan E-Ticketing Helpdesk", style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Full Name Field
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("Nama Lengkap") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = nameError != null,
+            supportingText = { if (nameError != null) Text(nameError, color = MaterialTheme.colorScheme.error) },
+            singleLine = true,
+            enabled = !isLoading
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Username Field
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = usernameError != null,
+            supportingText = { if (usernameError != null) Text(usernameError, color = MaterialTheme.colorScheme.error) },
+            singleLine = true,
+            enabled = !isLoading
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Email Field
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = emailError != null,
+            supportingText = { if (emailError != null) Text(emailError, color = MaterialTheme.colorScheme.error) },
+            singleLine = true,
+            enabled = !isLoading
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Password Field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = !isLoading) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            isError = passwordError != null,
+            supportingText = { if (passwordError != null) Text(passwordError, color = MaterialTheme.colorScheme.error) },
+            singleLine = true,
+            enabled = !isLoading
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Confirm Password Field
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             label = { Text("Konfirmasi Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        val messageToShow = localError ?: authMessage
-        messageToShow?.let { message ->
-            Spacer(modifier = Modifier.height(12.dp))
-            AssistChip(
-                onClick = {},
-                label = { Text(message) },
-                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                localError = null
-                if (password != confirmPassword) {
-                    localError = "Konfirmasi password tidak cocok."
-                    return@Button
-                }
-
-                val success = viewModel.register(name, username, email, password)
-                if (success) {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
-                    }
+            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }, enabled = !isLoading) {
+                    Icon(
+                        imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null
+                    )
                 }
             },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Register")
+            modifier = Modifier.fillMaxWidth(),
+            isError = confirmPasswordError != null,
+            supportingText = { if (confirmPasswordError != null) Text(confirmPasswordError, color = MaterialTheme.colorScheme.error) },
+            singleLine = true,
+            enabled = !isLoading
+        )
+
+        // Auth Message
+        authMessage?.let { message ->
+            Spacer(modifier = Modifier.height(12.dp))
+            val isError = message.contains("gagal", ignoreCase = true) || message.contains("error", ignoreCase = true) || message.contains("sudah", ignoreCase = true)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isError) Icons.Default.Warning else Icons.Default.Info,
+                        contentDescription = null,
+                        tint = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        message,
+                        color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
-        TextButton(onClick = { navController.popBackStack() }) {
-            Text("Already have an account? Login")
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = {
+                if (isFormValid) {
+                    isLoading = true
+                    if (viewModel.register(name, username, email, password)) {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Register.route) { inclusive = true }
+                        }
+                    }
+                    isLoading = false
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isFormValid && !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text("Daftar")
+        }
+        
+        TextButton(
+            onClick = { navController.popBackStack() },
+            enabled = !isLoading
+        ) {
+            Text("Sudah punya akun? Login")
         }
     }
 }

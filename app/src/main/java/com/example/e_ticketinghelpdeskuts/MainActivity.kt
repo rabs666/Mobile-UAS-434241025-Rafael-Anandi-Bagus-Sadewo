@@ -4,10 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,16 +31,23 @@ import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketListScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
 import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModelFactory
 import com.example.e_ticketinghelpdeskuts.ui.theme.ETicketingHelpdeskUTSTheme
+import com.example.e_ticketinghelpdeskuts.utils.DebugUtils
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        DebugUtils.logDebug("MainActivity.onCreate() started")
+        
         setContent {
-            val repository = remember { FakeTicketRepository() }
+            val repository = remember { 
+                DebugUtils.logDebug("Creating FakeTicketRepository")
+                FakeTicketRepository() 
+            }
             val ticketViewModel: TicketViewModel = viewModel(
                 factory = TicketViewModelFactory(repository)
             )
+            DebugUtils.logDebug("TicketViewModel created successfully")
             val isDarkMode by ticketViewModel.isDarkMode.collectAsState()
 
             ETicketingHelpdeskUTSTheme(
@@ -48,6 +57,7 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(ticketViewModel)
             }
         }
+        DebugUtils.logDebug("MainActivity.onCreate() completed")
     }
 }
 
