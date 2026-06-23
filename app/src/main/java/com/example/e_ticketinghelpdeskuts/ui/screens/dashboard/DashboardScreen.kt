@@ -1,5 +1,6 @@
 package com.example.e_ticketinghelpdeskuts.ui.screens.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -67,10 +68,30 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item { StatCard("Total Tiket", totalCount.toString(), Icons.AutoMirrored.Filled.List, MaterialTheme.colorScheme.primary) }
-                item { StatCard("Open", openCount.toString(), Icons.Default.Info, MaterialTheme.colorScheme.error) }
-                item { StatCard("In Progress", progressCount.toString(), Icons.Default.Build, MaterialTheme.colorScheme.secondary) }
-                item { StatCard("Selesai", closedCount.toString(), Icons.Default.CheckCircle, MaterialTheme.colorScheme.tertiary) }
+                item {
+                    StatCard("Total Tiket", totalCount.toString(), Icons.AutoMirrored.Filled.List, MaterialTheme.colorScheme.primary) {
+                        viewModel.selectStatusFilter(null)
+                        navController.navigate(Screen.TicketList.route)
+                    }
+                }
+                item {
+                    StatCard("Open", openCount.toString(), Icons.Default.Info, MaterialTheme.colorScheme.error) {
+                        viewModel.selectStatusFilter(TicketStatus.OPEN)
+                        navController.navigate(Screen.TicketList.route)
+                    }
+                }
+                item {
+                    StatCard("In Progress", progressCount.toString(), Icons.Default.Build, MaterialTheme.colorScheme.secondary) {
+                        viewModel.selectStatusFilter(TicketStatus.IN_PROGRESS)
+                        navController.navigate(Screen.TicketList.route)
+                    }
+                }
+                item {
+                    StatCard("Selesai", closedCount.toString(), Icons.Default.CheckCircle, MaterialTheme.colorScheme.tertiary) {
+                        viewModel.selectStatusFilter(TicketStatus.CLOSED)
+                        navController.navigate(Screen.TicketList.route)
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -79,7 +100,10 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
             Spacer(modifier = Modifier.height(8.dp))
             
             OutlinedButton(
-                onClick = { navController.navigate(Screen.TicketList.route) },
+                onClick = {
+                    viewModel.selectStatusFilter(null)
+                    navController.navigate(Screen.TicketList.route)
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
@@ -91,9 +115,11 @@ fun DashboardScreen(navController: NavController, viewModel: TicketViewModel) {
 }
 
 @Composable
-fun StatCard(title: String, value: String, icon: ImageVector, color: androidx.compose.ui.graphics.Color) {
+fun StatCard(title: String, value: String, icon: ImageVector, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f))
     ) {
         Column(

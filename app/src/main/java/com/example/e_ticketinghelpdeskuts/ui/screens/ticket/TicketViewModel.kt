@@ -59,6 +59,13 @@ class TicketViewModel(
     private val _isDarkMode = MutableStateFlow(false)
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
+    private val _selectedStatusFilter = MutableStateFlow<TicketStatus?>(null)
+    val selectedStatusFilter: StateFlow<TicketStatus?> = _selectedStatusFilter.asStateFlow()
+
+    fun selectStatusFilter(status: TicketStatus?) {
+        _selectedStatusFilter.value = status
+    }
+
     val isLoggedIn: StateFlow<Boolean> = currentUser
         .map { it != null }
         .stateIn(

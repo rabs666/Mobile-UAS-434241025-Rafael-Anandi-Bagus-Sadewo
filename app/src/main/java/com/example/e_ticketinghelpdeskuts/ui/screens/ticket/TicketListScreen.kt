@@ -27,7 +27,7 @@ import com.example.e_ticketinghelpdeskuts.ui.navigation.Screen
 fun TicketListScreen(navController: NavController, viewModel: TicketViewModel) {
     val tickets by viewModel.tickets.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    var selectedStatus by remember { mutableStateOf<TicketStatus?>(null) }
+    val selectedStatus by viewModel.selectedStatusFilter.collectAsState()
 
     val filteredTickets = remember(tickets, selectedStatus) {
         selectedStatus?.let { status -> tickets.filter { it.status == status } } ?: tickets
@@ -61,22 +61,22 @@ fun TicketListScreen(navController: NavController, viewModel: TicketViewModel) {
             ) {
                 FilterChip(
                     selected = selectedStatus == null,
-                    onClick = { selectedStatus = null },
+                    onClick = { viewModel.selectStatusFilter(null) },
                     label = { Text("Semua") }
                 )
                 FilterChip(
                     selected = selectedStatus == TicketStatus.OPEN,
-                    onClick = { selectedStatus = TicketStatus.OPEN },
+                    onClick = { viewModel.selectStatusFilter(TicketStatus.OPEN) },
                     label = { Text("Open") }
                 )
                 FilterChip(
                     selected = selectedStatus == TicketStatus.IN_PROGRESS,
-                    onClick = { selectedStatus = TicketStatus.IN_PROGRESS },
+                    onClick = { viewModel.selectStatusFilter(TicketStatus.IN_PROGRESS) },
                     label = { Text("In Progress") }
                 )
                 FilterChip(
                     selected = selectedStatus == TicketStatus.CLOSED,
-                    onClick = { selectedStatus = TicketStatus.CLOSED },
+                    onClick = { viewModel.selectStatusFilter(TicketStatus.CLOSED) },
                     label = { Text("Closed") }
                 )
             }
