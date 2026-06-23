@@ -105,7 +105,6 @@ Password semua akun: **`123456`**
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | Endpoint REST API & skema data model |
 | [docs/openapi.yaml](docs/openapi.yaml) | Spesifikasi OpenAPI (impor ke Swagger / Postman) |
 | [docs/DATABASE_DOCUMENTATION.md](docs/DATABASE_DOCUMENTATION.md) | Skema relasional, DDL, ERD, seed data |
-| [UAS SRS MOBILE PRAKTIKUM.docx](UAS%20SRS%20MOBILE%20PRAKTIKUM.docx) | Software Requirement Specification |
 
 ---
 
