@@ -88,7 +88,7 @@ flowchart TD
 ```
 
 **Catatan implementasi:** seluruh hasil aksi auth dikirim lewat satu state
-`authMessage: StateFlow<String?>` di `TicketViewModel`, lalu ditampilkan sebagai banner
+`authMessage: StateFlow<AuthMessage?>` di `TicketViewModel`, lalu ditampilkan sebagai banner
 (`MessageBanner`) di tiap layar auth dan dibersihkan otomatis saat layar dibuka
 (`clearAuthMessage()`).
 
