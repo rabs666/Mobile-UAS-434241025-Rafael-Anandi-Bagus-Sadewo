@@ -1,13 +1,23 @@
 package com.example.e_ticketinghelpdeskuts.ui.screens.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.e_ticketinghelpdeskuts.ui.navigation.Screen
@@ -27,15 +37,25 @@ fun ProfileScreen(navController: NavController, viewModel: TicketViewModel) {
         }
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Pengguna") },
+                title = { Text("Profil Pengguna", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
@@ -43,7 +63,8 @@ fun ProfileScreen(navController: NavController, viewModel: TicketViewModel) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .background(backgroundBrush)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val user = currentUser
@@ -54,39 +75,96 @@ fun ProfileScreen(navController: NavController, viewModel: TicketViewModel) {
                 return@Column
             }
 
-            Icon(
-                Icons.Default.AccountCircle,
-                contentDescription = null,
+            // Initials Avatar Circle
+            val initials = user.name.split(" ")
+                .mapNotNull { it.firstOrNull() }
+                .take(2)
+                .joinToString("")
+                .uppercase()
+
+            Surface(
                 modifier = Modifier.size(100.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                shadowElevation = 4.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = user.name, style = MaterialTheme.typography.headlineMedium)
-            Text(text = viewModel.roleLabel(user.role), style = MaterialTheme.typography.bodyLarge)
+            Text(text = user.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                text = viewModel.roleLabel(user.role), 
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Username: ${user.username}", style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Email: ${user.email}", style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Role Access: ${viewModel.roleLabel(user.role)}", style = MaterialTheme.typography.bodyLarge)
+            // Info Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Informasi Akun", 
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ProfileInfoRow(icon = Icons.Default.Person, label = "Username", value = user.username)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ProfileInfoRow(icon = Icons.Default.Email, label = "Email", value = user.email)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ProfileInfoRow(icon = Icons.Default.Security, label = "Role Akses", value = viewModel.roleLabel(user.role))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            // Dark Mode Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Mode Gelap (Dark Mode)")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.DarkMode, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Mode Gelap (Dark Mode)",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                     Switch(
                         checked = isDarkMode,
                         onCheckedChange = { viewModel.setDarkMode(it) }
@@ -96,6 +174,7 @@ fun ProfileScreen(navController: NavController, viewModel: TicketViewModel) {
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Logout Button
             Button(
                 onClick = {
                     viewModel.logout()
@@ -103,13 +182,37 @@ fun ProfileScreen(navController: NavController, viewModel: TicketViewModel) {
                         popUpTo(Screen.Profile.route) { inclusive = true }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
-                Icon(Icons.Default.AccountCircle, contentDescription = null)
+                Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Keluar dari Aplikasi")
+                Text("Keluar dari Aplikasi", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
             }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfileInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon, 
+            contentDescription = null, 
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

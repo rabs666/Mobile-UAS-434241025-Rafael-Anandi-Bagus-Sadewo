@@ -1,21 +1,25 @@
 package com.example.e_ticketinghelpdeskuts.ui.screens.ticket
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.e_ticketinghelpdeskuts.domain.model.Ticket
@@ -38,13 +42,16 @@ fun TicketListScreen(navController: NavController, viewModel: TicketViewModel) {
             TopAppBar(
                 title = {
                     val roleText = currentUser?.let { viewModel.roleLabel(it.role) } ?: "Guest"
-                    Text("Daftar Tiket - $roleText")
+                    Text("Daftar Pengaduan ($roleText)", fontWeight = FontWeight.Bold)
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
@@ -52,49 +59,62 @@ fun TicketListScreen(navController: NavController, viewModel: TicketViewModel) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .padding(horizontal = 16.dp)
         ) {
+            // Re-designed Filter Chips bar (larger, cleaner spacing)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = selectedStatus == null,
-                    onClick = { viewModel.selectStatusFilter(null) },
-                    label = { Text("Semua") }
-                )
-                FilterChip(
-                    selected = selectedStatus == TicketStatus.OPEN,
-                    onClick = { viewModel.selectStatusFilter(TicketStatus.OPEN) },
-                    label = { Text("Open") }
-                )
-                FilterChip(
-                    selected = selectedStatus == TicketStatus.IN_PROGRESS,
-                    onClick = { viewModel.selectStatusFilter(TicketStatus.IN_PROGRESS) },
-                    label = { Text("In Progress") }
-                )
-                FilterChip(
-                    selected = selectedStatus == TicketStatus.CLOSED,
-                    onClick = { viewModel.selectStatusFilter(TicketStatus.CLOSED) },
-                    label = { Text("Closed") }
-                )
+                listOf(
+                    null to "Semua",
+                    TicketStatus.OPEN to "Open",
+                    TicketStatus.IN_PROGRESS to "In Progress",
+                    TicketStatus.CLOSED to "Closed"
+                ).forEach { (status, label) ->
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { viewModel.selectStatusFilter(status) },
+                        label = { Text(label) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
             }
 
             if (filteredTickets.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Belum ada tiket pada filter ini.")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Belum ada tiket laporan.",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Tiket pengaduan yang dibuat akan tampil di sini.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
                     items(filteredTickets) { ticket ->
-                        TicketListItem(ticket = ticket) {
+                        TicketCardItem(ticket = ticket) {
                             navController.navigate(Screen.TicketDetail.createRoute(ticket.id))
                         }
-                        HorizontalDivider()
                     }
                 }
             }
@@ -103,32 +123,120 @@ fun TicketListScreen(navController: NavController, viewModel: TicketViewModel) {
 }
 
 @Composable
-fun TicketListItem(ticket: Ticket, onClick: () -> Unit) {
-    ListItem(
-        modifier = Modifier.clickable { onClick() },
-        headlineContent = { Text(ticket.title) },
-        supportingContent = {
-            Text(
-                "${ticket.createdAt} • ${ticket.id}\nPelapor: ${ticket.applicant}" +
-                    (ticket.assignedTo?.let { "\nAssigned: $it" } ?: "")
-            )
-        },
-        trailingContent = {
-            Surface(
-                color = when (ticket.status) {
-                    TicketStatus.OPEN -> Color(0xFFE57373)
-                    TicketStatus.IN_PROGRESS -> Color(0xFF64B5F6)
-                    TicketStatus.CLOSED -> Color(0xFF81C784)
-                },
-                shape = MaterialTheme.shapes.small
+fun TicketCardItem(ticket: Ticket, onClick: () -> Unit) {
+    val statusColor = when (ticket.status) {
+        TicketStatus.OPEN -> MaterialTheme.colorScheme.error
+        TicketStatus.IN_PROGRESS -> MaterialTheme.colorScheme.secondary
+        TicketStatus.CLOSED -> MaterialTheme.colorScheme.tertiary
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.15f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = ticket.status.name,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall
+                    text = ticket.id,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                
+                Surface(
+                    color = statusColor.copy(alpha = 0.1f),
+                    shape = CircleShape,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = ticket.status.name,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                        color = statusColor,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = ticket.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Person, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Pelapor: ${ticket.applicant}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (ticket.assignedTo != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Assignment, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Petugas: ${ticket.assignedTo}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange, 
+                        contentDescription = null, 
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = ticket.createdAt.split(" ")[0], // Hanya tampilkan tanggal
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
-    )
+    }
 }

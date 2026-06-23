@@ -1,7 +1,9 @@
 package com.example.e_ticketinghelpdeskuts.ui.screens.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,10 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.e_ticketinghelpdeskuts.ui.components.BrandLogo
 import com.example.e_ticketinghelpdeskuts.ui.components.MessageBanner
 import com.example.e_ticketinghelpdeskuts.ui.navigation.Screen
 import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
@@ -39,116 +45,242 @@ fun LoginScreen(navController: NavController, viewModel: TicketViewModel) {
         }
     }
 
-    Column(
+    // Modern Gradient Background (Material 3 Theme Aware)
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background
+        )
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(backgroundBrush)
     ) {
-        Text(text = "E-Ticketing Helpdesk", style = MaterialTheme.typography.headlineLarge)
-        Text(text = "UTS Frontend", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(32.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Username Field
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = !isLoading
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // Password Field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = null
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = !isLoading
-        )
+            // Brand Logo Component
+            BrandLogo(
+                modifier = Modifier.padding(bottom = 16.dp),
+                size = 90.dp,
+                badgeColor = MaterialTheme.colorScheme.surface,
+                markColor = MaterialTheme.colorScheme.primary,
+                elevation = 6.dp
+            )
 
-        // Auth Message (Success or Error) — typed, colour driven by AuthMessage.isError
-        authMessage?.let { message ->
-            Spacer(modifier = Modifier.height(12.dp))
-            MessageBanner(text = message.text, isError = message.isError)
-        }
+            Text(
+                text = "E-Helpdesk",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Layanan Pengaduan & Support IT",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Forgot Password Link
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            TextButton(
-                onClick = { navController.navigate(Screen.ResetPassword.route) },
-                enabled = !isLoading
+            // Main Glassmorphism Form Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Text("Lupa Password?")
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Masuk ke Akun",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Username Field
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username") },
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.Person, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !isLoading
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Password Field
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.Lock, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !isLoading
+                    )
+
+                    // Auth Message
+                    authMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MessageBanner(text = message.text, isError = message.isError)
+                    }
+
+                    // Forgot Password Link
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        TextButton(
+                            onClick = { navController.navigate(Screen.ResetPassword.route) },
+                            enabled = !isLoading,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                "Lupa Password?",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Login Button (Premium Height & Layout)
+                    Button(
+                        onClick = {
+                            if (username.isBlank() || password.isBlank()) {
+                                return@Button
+                            }
+                            isLoading = true
+                            val loginSuccess = viewModel.login(username, password)
+                            isLoading = false
+                            if (loginSuccess) {
+                                // Navigation handled by LaunchedEffect
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = username.isNotBlank() && password.isNotBlank() && !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(
+                            "Login",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "Belum punya akun?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        TextButton(
+                            onClick = { navController.navigate(Screen.Register.route) },
+                            enabled = !isLoading,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                "Daftar sekarang",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Login Button
-        Button(
-            onClick = {
-                if (username.isBlank() || password.isBlank()) {
-                    return@Button
-                }
-                isLoading = true
-                val loginSuccess = viewModel.login(username, password)
-                isLoading = false
-                if (loginSuccess) {
-                    // Navigation handled by LaunchedEffect
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = username.isNotBlank() && password.isNotBlank() && !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Demo Credentials Card (Clean minimalist look)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Demo Kredensial Akun:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("Ahmad (User)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Rina (Helpdesk)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Admin UTS (Admin)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Username: ahmad • pw: 123456", style = MaterialTheme.typography.bodySmall)
+                            Text("Username: helpdesk • pw: 123456", style = MaterialTheme.typography.bodySmall)
+                            Text("Username: admin • pw: 123456", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
             }
-            Text("Login")
-        }
-
-        TextButton(
-            onClick = { navController.navigate(Screen.Register.route) },
-            enabled = !isLoading
-        ) {
-            Text("Belum punya akun? Daftar sekarang")
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Demo Credentials Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("Demo Akun:", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("User: ahmad / Password: 123456", style = MaterialTheme.typography.bodySmall)
-                Text("Helpdesk: helpdesk / Password: 123456", style = MaterialTheme.typography.bodySmall)
-                Text("Admin: admin / Password: 123456", style = MaterialTheme.typography.bodySmall)
-            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
