@@ -23,9 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.e_ticketinghelpdeskuts.domain.model.AttachmentSource
 import com.example.e_ticketinghelpdeskuts.domain.model.Ticket
 import com.example.e_ticketinghelpdeskuts.domain.model.TicketActivity
@@ -378,7 +380,12 @@ private fun TicketInfoCard(ticket: Ticket) {
             if (ticket.attachmentSource != AttachmentSource.NONE) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Attachment, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Attachment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Lampiran: ",
@@ -386,9 +393,39 @@ private fun TicketInfoCard(ticket: Ticket) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${ticket.attachmentSource.name}${ticket.attachmentName?.let { " - $it" } ?: ""}",
+                        text = "${if (ticket.attachmentSource == AttachmentSource.CAMERA) "📷 Kamera" else "🖼️ Berkas"}${ticket.attachmentName?.let { " - $it" } ?: ""}",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                }
+
+                // Preview foto jika ada URI
+                ticket.attachmentUri?.let { uriString ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Preview Foto Lampiran:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                RoundedCornerShape(14.dp)
+                            )
+                    ) {
+                        AsyncImage(
+                            model = uriString,
+                            contentDescription = "Foto lampiran tiket",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
             }
         }

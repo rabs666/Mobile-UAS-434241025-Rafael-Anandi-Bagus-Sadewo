@@ -14,5 +14,6 @@ interface TicketRepository {
     suspend fun updateTicketStatus(id: String, status: TicketStatus, actor: String)
     suspend fun assignTicket(id: String, assignee: String, actor: String)
     suspend fun addComment(ticketId: String, comment: Comment)
+    suspend fun markNotificationAsRead(notificationId: String)
     suspend fun markAllNotificationsAsRead()
 }

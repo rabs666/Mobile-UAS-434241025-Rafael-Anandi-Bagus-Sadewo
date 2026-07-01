@@ -135,6 +135,13 @@ class FakeTicketRepository : TicketRepository {
         }
     }
 
+    override suspend fun markNotificationAsRead(notificationId: String) {
+        val updated = notificationsFlow.value.map { notif ->
+            if (notif.id == notificationId) notif.copy(isRead = true) else notif
+        }
+        notificationsFlow.emit(updated)
+    }
+
     override suspend fun markAllNotificationsAsRead() {
         val updated = notificationsFlow.value.map { it.copy(isRead = true) }
         notificationsFlow.emit(updated)
@@ -214,20 +221,51 @@ class FakeTicketRepository : TicketRepository {
 
     private fun seedNotifications(): List<AppNotification> {
         return listOf(
+            // ── Notifikasi untuk Ahmad Dani (U-001 / T-001) ──────────────────
             AppNotification(
                 id = "N-001",
-                title = "Update Status",
-                message = "T-002 sedang ditangani helpdesk",
-                ticketId = "T-002",
-                timestamp = "2026-04-07 14:50",
+                title = "Tiket Kamu Sedang Diproses",
+                message = "Tiket \"Koneksi Internet Putus\" (T-001) sedang ditangani oleh tim helpdesk.",
+                ticketId = "T-001",
+                timestamp = "2026-04-08 10:00",
                 isRead = false
             ),
             AppNotification(
                 id = "N-002",
-                title = "Tiket Selesai",
-                message = "T-003 sudah diselesaikan",
+                title = "Petugas Sudah Ditugaskan",
+                message = "Tiket T-001 kamu telah di-assign ke Rina Helpdesk. Tunggu tindak lanjut.",
+                ticketId = "T-001",
+                timestamp = "2026-04-08 10:15",
+                isRead = false
+            ),
+
+            // ── Notifikasi untuk Siti Aminah (U-002 / T-002) ─────────────────
+            AppNotification(
+                id = "N-003",
+                title = "Tiket Kamu Sedang Dikerjakan",
+                message = "Tiket \"Layar Monitor Berkedip\" (T-002) kini berstatus IN_PROGRESS. Rina Helpdesk sedang menangani.",
+                ticketId = "T-002",
+                timestamp = "2026-04-07 14:50",
+                isRead = false
+            ),
+
+            // ── Notifikasi untuk Budi Utomo (U-003 / T-003) ──────────────────
+            AppNotification(
+                id = "N-004",
+                title = "Tiket Kamu Sudah Selesai ✓",
+                message = "Tiket \"Install Software Design\" (T-003) telah CLOSED. Masalah telah diselesaikan.",
                 ticketId = "T-003",
                 timestamp = "2026-04-06 11:11",
+                isRead = true
+            ),
+
+            // ── Notifikasi global (admin/helpdesk saja yang relevan) ──────────
+            AppNotification(
+                id = "N-005",
+                title = "Tiket Baru Masuk",
+                message = "Ahmad Dani membuat tiket baru: \"Koneksi Internet Putus\" (T-001). Segera ditindaklanjuti.",
+                ticketId = "T-001",
+                timestamp = "2026-04-08 09:00",
                 isRead = true
             )
         )

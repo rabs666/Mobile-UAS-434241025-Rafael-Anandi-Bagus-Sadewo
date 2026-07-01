@@ -94,7 +94,28 @@ class TicketViewModel(
             initialValue = emptyList()
         )
 
-    val notifications: StateFlow<List<AppNotification>> = repository.getNotifications()
+    // Notifikasi difilter berdasarkan role:
+    // - USER hanya melihat notifikasi untuk tiket miliknya (berdasarkan ticketId di allTickets)
+    // - ADMIN / HELPDESK melihat semua notifikasi
+    val notifications: StateFlow<List<AppNotification>> = combine(
+        repository.getNotifications(),
+        currentUser,
+        allTickets
+    ) { allNotifs, activeUser, tickets ->
+        when (activeUser?.role) {
+            UserRole.USER -> {
+                val ownTicketIds = tickets
+                    .filter { it.applicantId == activeUser.id }
+                    .map { it.id }
+                    .toSet()
+                allNotifs.filter { notif ->
+                    notif.ticketId == null || notif.ticketId in ownTicketIds
+                }
+            }
+            UserRole.HELPDESK, UserRole.ADMIN -> allNotifs
+            null -> emptyList()
+        }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -225,7 +246,8 @@ class TicketViewModel(
         title: String,
         description: String,
         attachmentSource: AttachmentSource,
-        attachmentName: String?
+        attachmentName: String?,
+        attachmentUri: String? = null
     ) {
         val user = _currentUser.value
         if (user == null) {
@@ -245,6 +267,7 @@ class TicketViewModel(
                 applicant = user.name,
                 attachmentSource = attachmentSource,
                 attachmentName = attachmentName?.trim()?.takeIf { it.isNotEmpty() },
+                attachmentUri = attachmentUri,
                 activities = listOf(
                     TicketActivity(
                         id = UUID.randomUUID().toString(),
@@ -305,6 +328,12 @@ class TicketViewModel(
                 timestamp = currentTimestamp()
             )
             repository.addComment(ticketId, comment)
+        }
+    }
+
+    fun markNotificationAsRead(notificationId: String) {
+        viewModelScope.launch {
+            repository.markNotificationAsRead(notificationId)
         }
     }
 

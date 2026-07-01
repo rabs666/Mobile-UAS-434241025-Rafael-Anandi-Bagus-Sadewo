@@ -9,14 +9,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -27,11 +29,30 @@ import com.example.e_ticketinghelpdeskuts.ui.screens.ticket.TicketViewModel
 @Composable
 fun NotificationScreen(navController: NavController, viewModel: TicketViewModel) {
     val notifications by viewModel.notifications.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+            MaterialTheme.colorScheme.background
+        )
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pusat Notifikasi", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text("Pusat Notifikasi", fontWeight = FontWeight.Bold)
+                        if (currentUser != null) {
+                            Text(
+                                text = "Halo, ${currentUser!!.name}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -40,7 +61,11 @@ fun NotificationScreen(navController: NavController, viewModel: TicketViewModel)
                 actions = {
                     if (notifications.isNotEmpty() && notifications.any { !it.isRead }) {
                         TextButton(onClick = { viewModel.markAllNotificationsAsRead() }) {
-                            Text("Tandai Semua Dibaca", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Baca Semua",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                     }
                 },
@@ -50,57 +75,109 @@ fun NotificationScreen(navController: NavController, viewModel: TicketViewModel)
             )
         }
     ) { padding ->
-        if (notifications.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications, 
-                        contentDescription = null, 
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Tidak ada notifikasi.", 
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Informasi perkembangan tiket Anda akan muncul di sini.", 
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
-            ) {
-                items(notifications) { notification ->
-                    NotificationCardItem(
-                        title = notification.title,
-                        message = notification.message,
-                        timestamp = notification.timestamp,
-                        isRead = notification.isRead,
-                        onClick = {
-                            if (!notification.isRead) {
-                                viewModel.markAllNotificationsAsRead()
-                            }
-                            notification.ticketId?.let { ticketId ->
-                                navController.navigate(Screen.TicketDetail.createRoute(ticketId))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(backgroundBrush)
+        ) {
+            if (notifications.isEmpty()) {
+                // State kosong
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(80.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(40.dp)
+                                )
                             }
                         }
-                    )
+                        Text(
+                            text = "Belum Ada Notifikasi",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Update status tiket kamu akan tampil di sini.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else {
+                // Hitung unread
+                val unreadCount = notifications.count { !it.isRead }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp)
+                ) {
+                    if (unreadCount > 0) {
+                        item {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.NotificationsActive,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "$unreadCount notifikasi belum dibaca",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    items(notifications, key = { it.id }) { notification ->
+                        NotificationCardItem(
+                            title = notification.title,
+                            message = notification.message,
+                            timestamp = notification.timestamp,
+                            isRead = notification.isRead,
+                            hasTicketLink = notification.ticketId != null,
+                            onClick = {
+                                // Mark hanya notifikasi ini sebagai dibaca
+                                if (!notification.isRead) {
+                                    viewModel.markNotificationAsRead(notification.id)
+                                }
+                                // Navigate ke TicketDetail jika ada ticketId
+                                notification.ticketId?.let { ticketId ->
+                                    navController.navigate(Screen.TicketDetail.createRoute(ticketId))
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -113,6 +190,7 @@ fun NotificationCardItem(
     message: String,
     timestamp: String,
     isRead: Boolean,
+    hasTicketLink: Boolean,
     onClick: () -> Unit
 ) {
     val cardBg = if (isRead) {
@@ -122,40 +200,54 @@ fun NotificationCardItem(
     }
 
     val borderStroke = if (isRead) {
-        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        androidx.compose.foundation.BorderStroke(
+            1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
     } else {
-        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+        androidx.compose.foundation.BorderStroke(
+            1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        )
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(enabled = hasTicketLink || !isRead) { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         border = borderStroke,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isRead) 1.dp else 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isRead) 1.dp else 3.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
+            // Icon notifikasi
             Surface(
                 shape = CircleShape,
-                color = if (isRead) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                modifier = Modifier.size(40.dp)
+                color = if (isRead)
+                    MaterialTheme.colorScheme.surfaceVariant
+                else
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                modifier = Modifier.size(42.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.Notifications, 
-                        contentDescription = null, 
-                        tint = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = if (isRead) Icons.Default.CheckCircle else Icons.Default.NotificationsActive,
+                        contentDescription = null,
+                        tint = if (isRead)
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        else
+                            MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
+
+            Spacer(modifier = Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
+                // Baris atas: timestamp + indikator unread
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -174,19 +266,40 @@ fun NotificationCardItem(
                         ) {}
                     }
                 }
+
                 Spacer(modifier = Modifier.height(4.dp))
+
+                // Judul
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (isRead) FontWeight.SemiBold else FontWeight.Bold,
-                    color = if (isRead) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary
+                    color = if (isRead)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.primary
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
+                // Pesan
                 Text(
                     text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight
                 )
+
+                // Label "Lihat Tiket" jika ada link
+                if (hasTicketLink) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (isRead) "Lihat detail tiket →" else "Tap untuk buka tiket →",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (isRead) 0.6f else 1f)
+                    )
+                }
             }
         }
     }

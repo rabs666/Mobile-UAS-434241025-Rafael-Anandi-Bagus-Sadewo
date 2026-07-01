@@ -13,6 +13,7 @@ data class Ticket(
     val assignedTo: String? = null,
     val attachmentSource: AttachmentSource = AttachmentSource.NONE,
     val attachmentName: String? = null,
+    val attachmentUri: String? = null,
     val comments: List<Comment> = emptyList(),
     val activities: List<TicketActivity> = emptyList()
 )
