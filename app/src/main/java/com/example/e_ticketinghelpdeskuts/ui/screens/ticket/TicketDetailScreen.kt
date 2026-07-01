@@ -87,8 +87,50 @@ fun TicketDetailScreen(navController: NavController, viewModel: TicketViewModel,
                 }
 
                 if (canManage) {
-                    // Admin: Assign section — only when status is OPEN (belum ditugaskan)
+                    // Step 2: Admin "Terima" — OPEN → ASSIGNED
                     if (currentUser?.role == UserRole.ADMIN && ticket!!.status == TicketStatus.OPEN) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Terima Tiket",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Klik tombol di bawah untuk menerima tiket ini. Status akan otomatis berubah menjadi ASSIGNED.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Button(
+                                        onClick = { viewModel.acceptTicket(ticket!!.id) },
+                                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Terima Tiket", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Step 3: Admin assign helpdesk — ASSIGNED → IN_PROGRESS
+                    if (currentUser?.role == UserRole.ADMIN && ticket!!.status == TicketStatus.ASSIGNED) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -98,7 +140,7 @@ fun TicketDetailScreen(navController: NavController, viewModel: TicketViewModel,
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text(
-                                        text = "Tugaskan ke Petugas",
+                                        text = "Tugaskan ke Petugas Helpdesk",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -156,7 +198,7 @@ fun TicketDetailScreen(navController: NavController, viewModel: TicketViewModel,
                         }
                     }
 
-                    // Helpdesk / Admin: Tombol Selesai — only when status is IN_PROGRESS
+                    // Step 4: Helpdesk / Admin klik Selesai — IN_PROGRESS → CLOSED
                     if (ticket!!.status == TicketStatus.IN_PROGRESS) {
                         item {
                             Card(

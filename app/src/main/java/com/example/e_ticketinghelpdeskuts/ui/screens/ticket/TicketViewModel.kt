@@ -315,6 +315,23 @@ class TicketViewModel(
         }
     }
 
+    fun acceptTicket(id: String) {
+        val actor = _currentUser.value
+        if (actor == null) {
+            _authMessage.value = AuthMessage.error("Silakan login terlebih dahulu.")
+            return
+        }
+
+        if (actor.role != UserRole.ADMIN) {
+            _authMessage.value = AuthMessage.error("Hanya admin yang dapat menerima tiket.")
+            return
+        }
+
+        viewModelScope.launch {
+            repository.acceptTicket(id, actor.name)
+        }
+    }
+
     fun finishTicket(id: String) {
         val actor = _currentUser.value
         if (actor == null) {

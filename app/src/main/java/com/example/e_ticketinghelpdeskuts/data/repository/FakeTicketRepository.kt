@@ -113,6 +113,38 @@ class FakeTicketRepository : TicketRepository {
         }
     }
 
+    override suspend fun acceptTicket(id: String, actor: String) {
+        var updatedTicket: Ticket? = null
+
+        val currentList = ticketsFlow.value.map { ticket ->
+            if (ticket.id == id) {
+                val latest = ticket.copy(
+                    status = TicketStatus.ASSIGNED,
+                    activities = ticket.activities + TicketActivity(
+                        id = UUID.randomUUID().toString(),
+                        title = "Tiket diterima oleh admin — status ASSIGNED",
+                        actor = actor,
+                        timestamp = now()
+                    )
+                )
+                updatedTicket = latest
+                latest
+            } else {
+                ticket
+            }
+        }
+
+        ticketsFlow.emit(currentList)
+
+        updatedTicket?.let {
+            pushNotification(
+                title = "Tiket Diterima",
+                message = "${it.id} telah diterima oleh $actor — status: ASSIGNED",
+                ticketId = it.id
+            )
+        }
+    }
+
     override suspend fun finishTicket(id: String, actor: String) {
         var updatedTicket: Ticket? = null
 
