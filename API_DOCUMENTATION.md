@@ -1,6 +1,9 @@
 # Dokumentasi API - E-Ticketing Helpdesk UTS
-**Versi:** 1.0.0  
-**Project:** Native Android (Jetpack Compose)
+**Versi:** 2.0.0  
+**Project:** Native Android (Jetpack Compose) — data dipersistensi pada **Supabase (PostgreSQL)**
+
+> **Alur status tiket (otomatis):**
+> `OPEN` → (Admin **Terima**) → `ASSIGNED` → (Admin **Assign** helpdesk) → `IN_PROGRESS` → (Helpdesk **Selesai**) → `CLOSED`
 
 Dokumentasi ini disusun untuk memenuhi syarat pengumpulan tugas (Langkah 14 pada panduan praktikum).
 
@@ -59,15 +62,23 @@ Kode status: `200` OK, `201` Created, `400` Bad Request, `401` Unauthorized, `40
     { "title": "string", "description": "string", "attachmentSource": "FILE/CAMERA" }
     ```
 
-### Update Status Tiket (Admin/Helpdesk)
+### Terima Tiket (Admin) — Langkah 2
 *   **Method:** `PATCH`
-*   **URL:** `/api/tickets/{id}/status`
-*   **Body:** `{ "status": "OPEN/IN_PROGRESS/CLOSED" }`
+*   **URL:** `/api/tickets/{id}/accept`
+*   **Body:** _(tanpa body)_
+*   **Efek:** Status otomatis `OPEN` → `ASSIGNED`. Hanya role **ADMIN**.
 
-### Assign Petugas (Admin)
+### Assign Helpdesk (Admin) — Langkah 3
 *   **Method:** `PATCH`
 *   **URL:** `/api/tickets/{id}/assign`
 *   **Body:** `{ "assignee": "string" }`
+*   **Efek:** Status otomatis `ASSIGNED` → `IN_PROGRESS`. Hanya role **ADMIN**.
+
+### Selesaikan Tiket (Helpdesk) — Langkah 4
+*   **Method:** `PATCH`
+*   **URL:** `/api/tickets/{id}/finish`
+*   **Body:** _(tanpa body)_
+*   **Efek:** Status otomatis `IN_PROGRESS` → `CLOSED`. Hanya role **HELPDESK**.
 
 ---
 
@@ -84,6 +95,31 @@ Kode status: `200` OK, `201` Created, `400` Bad Request, `401` Unauthorized, `40
 
 ---
 
+## 3b. Manajemen Pengguna (khusus ADMIN)
+
+### Ambil Daftar Pengguna
+*   **Method:** `GET`
+*   **URL:** `/api/users`
+*   **Keterangan:** Seluruh pengguna terdaftar. Hanya role **ADMIN**.
+
+### Tambah Pengguna
+*   **Method:** `POST`
+*   **URL:** `/api/users`
+*   **Body:** `{ "name": "string", "username": "string", "email": "string", "password": "string", "role": "USER/HELPDESK/ADMIN" }`
+*   **Keterangan:** Admin menambah pengguna dengan role pilihan.
+
+### Ubah Role Pengguna
+*   **Method:** `PATCH`
+*   **URL:** `/api/users/{id}/role`
+*   **Body:** `{ "role": "USER/HELPDESK/ADMIN" }`
+
+### Hapus Pengguna
+*   **Method:** `DELETE`
+*   **URL:** `/api/users/{id}`
+*   **Keterangan:** Admin tidak dapat menghapus akun sendiri.
+
+---
+
 ## 4. Skema Data Model
 Mengacu pada `domain/model/Ticket.kt`.
 
@@ -93,7 +129,7 @@ Mengacu pada `domain/model/Ticket.kt`.
   "id": "string",
   "title": "string",
   "description": "string",
-  "status": "OPEN | IN_PROGRESS | CLOSED",
+  "status": "OPEN | ASSIGNED | IN_PROGRESS | CLOSED",
   "createdAt": "string (ISO-8601)",
   "applicantId": "string",
   "applicant": "string",
@@ -128,7 +164,7 @@ Mengacu pada `domain/model/Ticket.kt`.
 ### Enum
 | Enum | Nilai |
 |------|-------|
-| `TicketStatus` | `OPEN`, `IN_PROGRESS`, `CLOSED` |
+| `TicketStatus` | `OPEN`, `ASSIGNED`, `IN_PROGRESS`, `CLOSED` |
 | `UserRole` | `USER`, `HELPDESK`, `ADMIN` |
 | `AttachmentSource` | `NONE`, `CAMERA`, `FILE` |
 

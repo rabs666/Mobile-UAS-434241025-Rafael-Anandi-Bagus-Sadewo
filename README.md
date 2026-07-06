@@ -15,7 +15,7 @@ mode gelap, dan kontrol akses berbasis role.
 
 - 🔐 **Autentikasi** — login, registrasi, reset password (dengan validasi).
 - 🎫 **Manajemen tiket** — buat, lihat daftar, lihat detail, lampiran (kamera/file).
-- 🔁 **Siklus status** — `OPEN → IN_PROGRESS → CLOSED` dengan audit trail.
+- 🔁 **Siklus status** — `OPEN → ASSIGNED → IN_PROGRESS → CLOSED` dengan audit trail.
 - 👥 **Role-based access** — `USER`, `HELPDESK`, `ADMIN` dengan hak akses berbeda.
 - 💬 **Komentar & diskusi** per tiket.
 - 🔔 **Notifikasi in-app** dengan badge belum-dibaca.

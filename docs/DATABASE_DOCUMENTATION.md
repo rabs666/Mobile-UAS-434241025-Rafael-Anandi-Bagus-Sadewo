@@ -48,7 +48,7 @@ di phpMyAdmin / MySQL Workbench / DBeaver, lalu **screenshot tabel** untuk lampi
 │ PK id               │
 │    title            │
 │    description      │
-│    status           │  enum(OPEN,IN_PROGRESS,CLOSED)
+│    status           │  enum(OPEN,ASSIGNED,IN_PROGRESS,CLOSED)
 │    created_at       │
 │ FK applicant_id     │──► users.id
 │ FK assigned_to (NL) │──► users.id
@@ -115,7 +115,7 @@ CREATE TABLE tickets (
     id                VARCHAR(20)   NOT NULL,
     title             VARCHAR(100)  NOT NULL,
     description       TEXT          NOT NULL,
-    status            ENUM('OPEN','IN_PROGRESS','CLOSED') NOT NULL DEFAULT 'OPEN',
+    status            ENUM('OPEN','ASSIGNED','IN_PROGRESS','CLOSED') NOT NULL DEFAULT 'OPEN',
     created_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     applicant_id      VARCHAR(20)   NOT NULL,
     assigned_to       VARCHAR(20)   NULL,
@@ -202,7 +202,7 @@ CREATE TABLE notifications (
 | `id` | VARCHAR(20) PK | Contoh `T-001` |
 | `title` | VARCHAR(100) | Judul tiket (5–100 karakter) |
 | `description` | TEXT | Deskripsi masalah (10–1000 karakter) |
-| `status` | ENUM | `OPEN` → `IN_PROGRESS` → `CLOSED` |
+| `status` | ENUM | `OPEN` → `ASSIGNED` → `IN_PROGRESS` → `CLOSED` |
 | `applicant_id` | FK → users.id | Pembuat tiket |
 | `assigned_to` | FK → users.id (NULL) | Petugas helpdesk yang menangani |
 | `attachment_source` | ENUM | `NONE` / `CAMERA` / `FILE` |
@@ -236,7 +236,8 @@ INSERT INTO users (id, name, username, email, password, role) VALUES
 INSERT INTO tickets (id,title,description,status,created_at,applicant_id,assigned_to,attachment_source,attachment_name) VALUES
 ('T-001','Koneksi Internet Putus','Internet di lantai 2 mati total.','OPEN','2026-04-08 09:00','U-001',NULL,'FILE','log-internet.png'),
 ('T-002','Layar Monitor Berkedip','Monitor sering mati sendiri saat dipakai.','IN_PROGRESS','2026-04-07 14:20','U-002','H-001','NONE',NULL),
-('T-003','Install Software Design','Butuh Adobe Suite untuk keperluan desain.','CLOSED','2026-04-06 10:00','U-003','H-002','NONE',NULL);
+('T-003','Install Software Design','Butuh Adobe Suite untuk keperluan desain.','CLOSED','2026-04-06 10:00','U-003','H-002','NONE',NULL),
+('T-004','Printer Ruang Dosen Error','Printer tidak terdeteksi oleh komputer di ruang dosen.','ASSIGNED','2026-04-09 08:00','U-002',NULL,'NONE',NULL);
 
 -- Comments
 INSERT INTO comments (id,ticket_id,sender,message,created_at) VALUES
@@ -251,7 +252,9 @@ INSERT INTO ticket_activities (id,ticket_id,title,actor,created_at) VALUES
 ('A-004','T-002','Tiket di-assign ke Rina Helpdesk','Admin UTS','2026-04-07 14:46'),
 ('A-005','T-003','Tiket dibuat','Budi Utomo','2026-04-06 10:00'),
 ('A-006','T-003','Status diubah menjadi IN_PROGRESS','Arif Helpdesk','2026-04-06 10:30'),
-('A-007','T-003','Status diubah menjadi CLOSED','Arif Helpdesk','2026-04-06 11:10');
+('A-007','T-003','Status diubah menjadi CLOSED','Arif Helpdesk','2026-04-06 11:10'),
+('A-008','T-004','Tiket dibuat','Siti Aminah','2026-04-09 08:00'),
+('A-009','T-004','Tiket diterima oleh admin — status Assigned','Admin UTS','2026-04-09 08:15');
 
 -- Notifications
 INSERT INTO notifications (id,title,message,created_at,ticket_id,is_read) VALUES

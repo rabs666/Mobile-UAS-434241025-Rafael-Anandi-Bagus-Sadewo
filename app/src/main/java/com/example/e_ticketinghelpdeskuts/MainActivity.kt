@@ -24,6 +24,7 @@ import com.example.e_ticketinghelpdeskuts.ui.screens.auth.LoginScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.auth.RegisterScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.auth.ResetPasswordScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.dashboard.DashboardScreen
+import com.example.e_ticketinghelpdeskuts.ui.screens.admin.UserManagementScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.notification.NotificationScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.profile.ProfileScreen
 import com.example.e_ticketinghelpdeskuts.ui.screens.splash.SplashScreen
@@ -105,6 +106,9 @@ fun AppNavigation(ticketViewModel: TicketViewModel) {
         }
         composable(Screen.Notifications.route) {
             NotificationScreen(navController, ticketViewModel)
+        }
+        composable(Screen.UserManagement.route) {
+            UserManagementScreen(navController, ticketViewModel)
         }
     }
 }

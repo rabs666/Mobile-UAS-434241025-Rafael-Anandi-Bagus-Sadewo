@@ -101,17 +101,20 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> OPEN: User buat tiket
-    OPEN --> IN_PROGRESS: Helpdesk/Admin mulai menangani
-    IN_PROGRESS --> CLOSED: Helpdesk/Admin selesaikan
-    IN_PROGRESS --> OPEN: Buka kembali (butuh info)
+    OPEN --> ASSIGNED: Admin terima tiket (Terima)
+    ASSIGNED --> IN_PROGRESS: Admin assign helpdesk
+    IN_PROGRESS --> CLOSED: Helpdesk selesaikan
     CLOSED --> [*]
 
     note right of OPEN
-        Tiket baru, belum di-assign.
+        Tiket baru, belum diterima admin.
         Tercatat di ticket_activities.
     end note
+    note right of ASSIGNED
+        Sudah diterima admin, belum di-assign.
+    end note
     note right of IN_PROGRESS
-        Sudah di-assign ke petugas.
+        Sudah di-assign ke petugas helpdesk.
         Komentar/diskusi berjalan.
     end note
 ```
@@ -182,7 +185,7 @@ spacing terstandardisasi (`ui/theme/Spacing.kt`), komponen reusable
 - **UX:** verifikasi email terdaftar; umpan balik jelas via banner.
 
 ### 5.5 Dashboard
-- **Elemen:** sapaan + role pengguna, ringkasan statistik tiket per status (OPEN/IN_PROGRESS/CLOSED), shortcut ke daftar tiket / buat tiket / notifikasi / profil, badge jumlah notifikasi belum dibaca.
+- **Elemen:** sapaan + role pengguna, ringkasan statistik tiket per status (OPEN/ASSIGNED/IN_PROGRESS/CLOSED), shortcut ke daftar tiket / buat tiket / notifikasi / profil, badge jumlah notifikasi belum dibaca.
 - **UX:** titik masuk utama setelah login; kartu statistik memakai `StatusChip` berwarna.
 
 ### 5.6 Daftar Tiket (Ticket List)

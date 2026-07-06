@@ -16,6 +16,12 @@ info:
     Seluruh endpoint (kecuali `login` & `register`) memerlukan header:
     `Authorization: Bearer <token>`
 
+    ## Persistensi Data
+    Data dipersistensi pada **Supabase (PostgreSQL)** melalui `SupabaseTicketRepository`.
+
+    ## Alur Status Tiket (otomatis)
+    `OPEN` → (Admin **Terima**) → `ASSIGNED` → (Admin **Assign** helpdesk) → `IN_PROGRESS` → (Helpdesk **Selesai**) → `CLOSED`
+
     ## Format respons standar
     ```json
     { "success": true, "message": "string", "data": { } }
@@ -29,7 +35,7 @@ info:
     | HELPDESK | helpdesk   | 123456   |
     | HELPDESK | arif       | 123456   |
     | ADMIN    | admin      | 123456   |
-  version: 1.0.0
+  version: 2.0.0
   contact:
     name: Tim E-Ticketing Helpdesk UTS
 servers:
@@ -47,6 +53,8 @@ tags:
     description: Balasan / diskusi pada tiket
   - name: Notifikasi
     description: Notifikasi dalam aplikasi
+  - name: Pengguna
+    description: Manajemen pengguna (khusus ADMIN)
 
 paths:
   /api/auth/login:
@@ -250,37 +258,25 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/tickets/{id}/status:
+  /api/tickets/{id}/accept:
     patch:
       tags: [Tiket]
-      summary: Ubah status tiket (Helpdesk/Admin)
+      summary: Terima tiket (Admin) — Langkah 2
       description: |
-        Memperbarui status tiket. Hanya untuk role **HELPDESK** atau **ADMIN**.
-        Otomatis menambahkan aktivitas & notifikasi perubahan status.
+        Admin menerima tiket masuk. Status otomatis berubah **OPEN → ASSIGNED**.
+        Menambahkan aktivitas & notifikasi. Hanya untuk role **ADMIN**.
       parameters:
         - $ref: '#/components/parameters/TicketId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  $ref: '#/components/schemas/TicketStatus'
-            example:
-              status: IN_PROGRESS
       responses:
         '200':
-          description: Status diperbarui
+          description: Tiket diterima (status ASSIGNED)
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: { type: boolean, example: true }
-                  message: { type: string, example: Status tiket diperbarui }
+                  message: { type: string, example: Tiket diterima oleh admin — status Assigned }
                   data:
                     $ref: '#/components/schemas/Ticket'
         '403':
@@ -291,8 +287,11 @@ paths:
   /api/tickets/{id}/assign:
     patch:
       tags: [Tiket]
-      summary: Tugaskan tiket ke petugas (Admin)
-      description: Meng-assign tiket ke petugas helpdesk. Hanya untuk role **ADMIN**.
+      summary: Tugaskan tiket ke helpdesk (Admin) — Langkah 3
+      description: |
+        Admin meng-assign tiket ke petugas helpdesk. Status otomatis berubah
+        **ASSIGNED → IN_PROGRESS**. Menambahkan aktivitas & notifikasi.
+        Hanya untuk role **ADMIN**.
       parameters:
         - $ref: '#/components/parameters/TicketId'
       requestBody:
@@ -310,14 +309,41 @@ paths:
               assignee: Rina Helpdesk
       responses:
         '200':
-          description: Tiket berhasil ditugaskan
+          description: Tiket ditugaskan (status IN_PROGRESS)
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: { type: boolean, example: true }
-                  message: { type: string, example: Tiket ditugaskan ke Rina Helpdesk }
+                  message: { type: string, example: Tiket ditugaskan ke Rina Helpdesk — status In Progress }
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/tickets/{id}/finish:
+    patch:
+      tags: [Tiket]
+      summary: Selesaikan tiket (Helpdesk) — Langkah 4
+      description: |
+        Helpdesk menyelesaikan tiket yang ditangani. Status otomatis berubah
+        **IN_PROGRESS → CLOSED**. Menambahkan aktivitas & notifikasi.
+        Hanya untuk role **HELPDESK**.
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: Tiket selesai (status CLOSED)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Tiket diselesaikan — status Closed }
                   data:
                     $ref: '#/components/schemas/Ticket'
         '403':
@@ -381,6 +407,33 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/notifications/{id}/read:
+    patch:
+      tags: [Notifikasi]
+      summary: Tandai satu notifikasi terbaca
+      description: Mengubah satu notifikasi menjadi isRead = true.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID notifikasi (contoh N-001)
+          schema:
+            type: string
+            example: N-001
+      responses:
+        '200':
+          description: Notifikasi ditandai terbaca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                success: true
+                message: Notifikasi ditandai sebagai terbaca
+                data: null
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/notifications/read-all:
     patch:
       tags: [Notifikasi]
@@ -397,6 +450,137 @@ paths:
                 success: true
                 message: Semua notifikasi ditandai sebagai terbaca
                 data: null
+
+  /api/users:
+    get:
+      tags: [Pengguna]
+      summary: Ambil daftar pengguna (Admin)
+      description: Mengambil seluruh pengguna terdaftar. Hanya untuk role **ADMIN**.
+      responses:
+        '200':
+          description: Daftar pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: OK }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Pengguna]
+      summary: Tambah pengguna baru (Admin)
+      description: |
+        Admin menambahkan pengguna baru dengan role pilihan (USER / HELPDESK / ADMIN).
+        Hanya untuk role **ADMIN**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            example:
+              name: Dewi Lestari
+              username: dewi
+              email: dewi@campus.ac.id
+              password: "123456"
+              role: HELPDESK
+      responses:
+        '201':
+          description: Pengguna berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Pengguna Dewi Lestari (Helpdesk) ditambahkan }
+                  data:
+                    $ref: '#/components/schemas/AppUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/users/{id}/role:
+    patch:
+      tags: [Pengguna]
+      summary: Ubah role pengguna (Admin)
+      description: Memperbarui role seorang pengguna. Hanya untuk role **ADMIN**.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID pengguna (contoh U-001)
+          schema:
+            type: string
+            example: U-001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  $ref: '#/components/schemas/UserRole'
+            example:
+              role: HELPDESK
+      responses:
+        '200':
+          description: Role diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Role Ahmad Dani diubah menjadi Helpdesk }
+                  data:
+                    $ref: '#/components/schemas/AppUser'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/{id}:
+    delete:
+      tags: [Pengguna]
+      summary: Hapus pengguna (Admin)
+      description: |
+        Menghapus pengguna. Hanya untuk role **ADMIN**.
+        Admin tidak dapat menghapus akun miliknya sendiri.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID pengguna (contoh U-002)
+          schema:
+            type: string
+            example: U-002
+      responses:
+        '200':
+          description: Pengguna dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                success: true
+                message: Pengguna Siti Aminah dihapus
+                data: null
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:
@@ -460,8 +644,13 @@ components:
   schemas:
     TicketStatus:
       type: string
-      enum: [OPEN, IN_PROGRESS, CLOSED]
-      description: Status tiket
+      enum: [OPEN, ASSIGNED, IN_PROGRESS, CLOSED]
+      description: |
+        Status tiket (berubah otomatis mengikuti alur):
+        - `OPEN` — tiket baru dibuat user
+        - `ASSIGNED` — admin menerima tiket (Terima)
+        - `IN_PROGRESS` — admin meng-assign helpdesk
+        - `CLOSED` — helpdesk menyelesaikan tiket
     UserRole:
       type: string
       enum: [USER, HELPDESK, ADMIN]
@@ -486,6 +675,17 @@ components:
         username: { type: string, minLength: 3, example: dewi }
         email: { type: string, format: email, example: dewi@campus.ac.id }
         password: { type: string, format: password, minLength: 6, example: "123456" }
+
+    CreateUserRequest:
+      type: object
+      required: [name, username, email, password, role]
+      properties:
+        name: { type: string, example: Dewi Lestari }
+        username: { type: string, minLength: 3, example: dewi }
+        email: { type: string, format: email, example: dewi@campus.ac.id }
+        password: { type: string, format: password, minLength: 6, example: "123456" }
+        role:
+          $ref: '#/components/schemas/UserRole'
 
     CreateTicketRequest:
       type: object

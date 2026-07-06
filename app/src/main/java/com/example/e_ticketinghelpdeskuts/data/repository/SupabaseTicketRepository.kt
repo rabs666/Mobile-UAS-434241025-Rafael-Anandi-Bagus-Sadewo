@@ -155,14 +155,14 @@ class SupabaseTicketRepository(
         @Serializable
         data class StatusUpdate(val status: String)
         
-        supabase.postgrest["tickets"].update(StatusUpdate(TicketStatus.IN_PROGRESS.name)) {
+        supabase.postgrest["tickets"].update(StatusUpdate(TicketStatus.ASSIGNED.name)) {
             filter { eq("id", id) }
         }
 
-        val activity = TicketActivityDto(UUID.randomUUID().toString(), id, "Tiket diterima oleh admin — status In Progress", actor, now())
+        val activity = TicketActivityDto(UUID.randomUUID().toString(), id, "Tiket diterima oleh admin — status Assigned", actor, now())
         supabase.postgrest["ticket_activities"].insert(activity)
 
-        pushNotification("Tiket Diterima", "$id telah diterima oleh $actor — status: In Progress", id)
+        pushNotification("Tiket Diterima", "$id telah diterima oleh $actor — status: Assigned", id)
         refreshData()
     }
 

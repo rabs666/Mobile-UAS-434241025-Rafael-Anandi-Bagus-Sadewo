@@ -372,6 +372,109 @@ class TicketViewModel(
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Manajemen Pengguna (SRS FR-007 #7) — hanya ADMIN.
+    // Mengikuti pola register(): sumber data tunggal _registeredUsers.
+    // ---------------------------------------------------------------------
+
+    /** Prefix id mengikuti role agar konsisten dengan seed (U-/H-/A-). */
+    private fun idPrefixFor(role: UserRole): String = when (role) {
+        UserRole.USER -> "U"
+        UserRole.HELPDESK -> "H"
+        UserRole.ADMIN -> "A"
+    }
+
+    private fun requireAdmin(action: String): Boolean {
+        val actor = _currentUser.value
+        if (actor == null) {
+            _authMessage.value = AuthMessage.error("Silakan login terlebih dahulu.")
+            return false
+        }
+        if (actor.role != UserRole.ADMIN) {
+            _authMessage.value = AuthMessage.error("Hanya admin yang dapat $action.")
+            return false
+        }
+        return true
+    }
+
+    /** Admin menambah pengguna baru dengan role pilihan (USER/HELPDESK/ADMIN). */
+    fun createUser(
+        name: String,
+        username: String,
+        email: String,
+        password: String,
+        role: UserRole
+    ): Boolean {
+        if (!requireAdmin("menambah pengguna")) return false
+
+        if (name.isBlank() || username.isBlank() || email.isBlank() || password.isBlank()) {
+            _authMessage.value = AuthMessage.error("Semua field wajib diisi.")
+            return false
+        }
+        if (password.length < 6) {
+            _authMessage.value = AuthMessage.error("Password minimal 6 karakter.")
+            return false
+        }
+
+        val users = _registeredUsers.value
+        if (users.any { it.username.equals(username.trim(), ignoreCase = true) }) {
+            _authMessage.value = AuthMessage.error("Username sudah dipakai.")
+            return false
+        }
+        if (users.any { it.email.equals(email.trim(), ignoreCase = true) }) {
+            _authMessage.value = AuthMessage.error("Email sudah terdaftar.")
+            return false
+        }
+
+        val newUser = AppUser(
+            id = "${idPrefixFor(role)}-${Random.nextInt(1000, 9999)}",
+            name = name.trim(),
+            username = username.trim(),
+            email = email.trim(),
+            password = password,
+            role = role
+        )
+        _registeredUsers.value = users + newUser
+        _authMessage.value = AuthMessage.success("Pengguna ${newUser.name} (${roleLabel(role)}) ditambahkan.")
+        return true
+    }
+
+    /** Admin mengubah role pengguna. */
+    fun updateUserRole(userId: String, newRole: UserRole): Boolean {
+        if (!requireAdmin("mengubah role pengguna")) return false
+
+        val users = _registeredUsers.value
+        val target = users.find { it.id == userId }
+        if (target == null) {
+            _authMessage.value = AuthMessage.error("Pengguna tidak ditemukan.")
+            return false
+        }
+        _registeredUsers.value = users.map {
+            if (it.id == userId) it.copy(role = newRole) else it
+        }
+        _authMessage.value = AuthMessage.success("Role ${target.name} diubah menjadi ${roleLabel(newRole)}.")
+        return true
+    }
+
+    /** Admin menghapus pengguna. Tidak boleh menghapus akun sendiri. */
+    fun deleteUser(userId: String): Boolean {
+        if (!requireAdmin("menghapus pengguna")) return false
+
+        if (_currentUser.value?.id == userId) {
+            _authMessage.value = AuthMessage.error("Tidak dapat menghapus akun sendiri.")
+            return false
+        }
+        val users = _registeredUsers.value
+        val target = users.find { it.id == userId }
+        if (target == null) {
+            _authMessage.value = AuthMessage.error("Pengguna tidak ditemukan.")
+            return false
+        }
+        _registeredUsers.value = users.filterNot { it.id == userId }
+        _authMessage.value = AuthMessage.success("Pengguna ${target.name} dihapus.")
+        return true
+    }
+
     private fun currentTimestamp(): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
     }
