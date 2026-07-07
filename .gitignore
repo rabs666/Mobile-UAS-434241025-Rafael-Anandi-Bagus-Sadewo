@@ -31,3 +31,4 @@ build_result.txt
 # Office lock/temp files
 ~$*
 /.idea/misc.xml
+.idea/
