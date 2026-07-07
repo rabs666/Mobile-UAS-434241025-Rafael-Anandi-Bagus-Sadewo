@@ -1,11 +1,13 @@
 package com.example.e_ticketinghelpdeskuts.data.repository
 
 import com.example.e_ticketinghelpdeskuts.domain.model.AppNotification
+import com.example.e_ticketinghelpdeskuts.domain.model.AppUser
 import com.example.e_ticketinghelpdeskuts.domain.model.AttachmentSource
 import com.example.e_ticketinghelpdeskuts.domain.model.Comment
 import com.example.e_ticketinghelpdeskuts.domain.model.Ticket
 import com.example.e_ticketinghelpdeskuts.domain.model.TicketActivity
 import com.example.e_ticketinghelpdeskuts.domain.model.TicketStatus
+import com.example.e_ticketinghelpdeskuts.domain.model.UserRole
 import com.example.e_ticketinghelpdeskuts.domain.model.displayName
 import com.example.e_ticketinghelpdeskuts.domain.repository.TicketRepository
 import kotlinx.coroutines.flow.Flow
@@ -19,8 +21,23 @@ import java.util.UUID
 class FakeTicketRepository : TicketRepository {
     private val ticketsFlow = MutableStateFlow(seedTickets())
     private val notificationsFlow = MutableStateFlow(seedNotifications())
+    private val usersFlow = MutableStateFlow(seedUsers())
 
     override fun getTickets(): Flow<List<Ticket>> = ticketsFlow
+
+    override fun getUsers(): Flow<List<AppUser>> = usersFlow
+
+    override suspend fun createUser(user: AppUser) {
+        usersFlow.emit(usersFlow.value + user)
+    }
+
+    override suspend fun updateUserRole(id: String, role: UserRole) {
+        usersFlow.emit(usersFlow.value.map { if (it.id == id) it.copy(role = role) else it })
+    }
+
+    override suspend fun deleteUser(id: String) {
+        usersFlow.emit(usersFlow.value.filterNot { it.id == id })
+    }
 
     override fun getTicketById(id: String): Flow<Ticket?> = ticketsFlow.map { list ->
         list.find { it.id == id }
@@ -206,6 +223,15 @@ class FakeTicketRepository : TicketRepository {
     private fun now(): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
     }
+
+    private fun seedUsers(): List<AppUser> = listOf(
+        AppUser("U-001", "Ahmad Dani", "ahmad", "ahmad@campus.ac.id", "123456", UserRole.USER),
+        AppUser("U-002", "Siti Aminah", "siti", "siti@campus.ac.id", "123456", UserRole.USER),
+        AppUser("U-003", "Budi Utomo", "budi", "budi@campus.ac.id", "123456", UserRole.USER),
+        AppUser("H-001", "Rina Helpdesk", "helpdesk", "helpdesk@campus.ac.id", "123456", UserRole.HELPDESK),
+        AppUser("H-002", "Arif Helpdesk", "arif", "arif@campus.ac.id", "123456", UserRole.HELPDESK),
+        AppUser("A-001", "Admin UTS", "admin", "admin@campus.ac.id", "123456", UserRole.ADMIN)
+    )
 
     private fun seedTickets(): List<Ticket> {
         return listOf(

@@ -1,8 +1,10 @@
 package com.example.e_ticketinghelpdeskuts.domain.repository
 
 import com.example.e_ticketinghelpdeskuts.domain.model.AppNotification
+import com.example.e_ticketinghelpdeskuts.domain.model.AppUser
 import com.example.e_ticketinghelpdeskuts.domain.model.Comment
 import com.example.e_ticketinghelpdeskuts.domain.model.Ticket
+import com.example.e_ticketinghelpdeskuts.domain.model.UserRole
 import kotlinx.coroutines.flow.Flow
 
 interface TicketRepository {
@@ -16,4 +18,10 @@ interface TicketRepository {
     suspend fun addComment(ticketId: String, comment: Comment)
     suspend fun markNotificationAsRead(notificationId: String)
     suspend fun markAllNotificationsAsRead()
+
+    // Manajemen pengguna (persist ke tabel users)
+    fun getUsers(): Flow<List<AppUser>>
+    suspend fun createUser(user: AppUser)
+    suspend fun updateUserRole(id: String, role: UserRole)
+    suspend fun deleteUser(id: String)
 }

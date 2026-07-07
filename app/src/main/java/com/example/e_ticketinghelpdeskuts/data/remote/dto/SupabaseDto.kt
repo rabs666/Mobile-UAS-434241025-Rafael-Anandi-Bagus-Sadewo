@@ -9,6 +9,8 @@ data class UserDto(
     val name: String,
     val username: String,
     val email: String,
+    // password perlu dibaca untuk login (dibandingkan di sisi klien, sesuai pola app ini)
+    val password: String = "",
     val role: String,
     @SerialName("created_at")
     val createdAt: String

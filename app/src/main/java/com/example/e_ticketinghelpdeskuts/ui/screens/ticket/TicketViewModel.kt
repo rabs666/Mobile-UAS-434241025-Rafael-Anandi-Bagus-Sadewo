@@ -47,8 +47,14 @@ class TicketViewModel(
     private val getTicketsUseCase = GetTicketsUseCase(repository)
     private val getTicketDetailUseCase = GetTicketDetailUseCase(repository)
 
-    private val _registeredUsers = MutableStateFlow(seedUsers())
-    val registeredUsers: StateFlow<List<AppUser>> = _registeredUsers.asStateFlow()
+    // Daftar pengguna kini bersumber dari repository (Supabase, dengan fallback seed).
+    // Eagerly agar registeredUsers.value selalu terisi saat login diproses.
+    val registeredUsers: StateFlow<List<AppUser>> = repository.getUsers()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = seedUsers()
+        )
 
     private val _currentUser = MutableStateFlow<AppUser?>(null)
     val currentUser: StateFlow<AppUser?> = _currentUser.asStateFlow()
@@ -151,7 +157,7 @@ class TicketViewModel(
             return false
         }
 
-        val user = _registeredUsers.value.find {
+        val user = registeredUsers.value.find {
             it.username.equals(username.trim(), ignoreCase = true) && it.password == password
         }
 
@@ -176,7 +182,7 @@ class TicketViewModel(
             return false
         }
 
-        val users = _registeredUsers.value
+        val users = registeredUsers.value
         if (users.any { it.username.equals(username.trim(), ignoreCase = true) }) {
             _authMessage.value = AuthMessage.error("Username sudah dipakai.")
             return false
@@ -195,8 +201,15 @@ class TicketViewModel(
             role = UserRole.USER
         )
 
-        _registeredUsers.value = users + newUser
+        // Persist ke Supabase (async). Validasi sudah lolos, jadi optimistis sukses.
         _authMessage.value = AuthMessage.success("Registrasi berhasil. Silakan login.")
+        viewModelScope.launch {
+            try {
+                repository.createUser(newUser)
+            } catch (e: Exception) {
+                _authMessage.value = AuthMessage.error("Registrasi gagal disimpan: ${e.message ?: "coba lagi"}")
+            }
+        }
         return true
     }
 
@@ -206,7 +219,7 @@ class TicketViewModel(
             return false
         }
 
-        val exists = _registeredUsers.value.any { it.email.equals(email.trim(), ignoreCase = true) }
+        val exists = registeredUsers.value.any { it.email.equals(email.trim(), ignoreCase = true) }
         return if (exists) {
             _authMessage.value = AuthMessage.success("Instruksi reset password telah dikirim ke ${email.trim()}.")
             true
@@ -255,29 +268,46 @@ class TicketViewModel(
             return
         }
 
-        viewModelScope.launch {
-            val now = currentTimestamp()
-            val newTicket = Ticket(
-                id = "T-${Random.nextInt(1000, 9999)}",
-                title = title.trim(),
-                description = description.trim(),
-                status = TicketStatus.OPEN,
-                createdAt = now,
-                applicantId = user.id,
-                applicant = user.name,
-                attachmentSource = attachmentSource,
-                attachmentName = attachmentName?.trim()?.takeIf { it.isNotEmpty() },
-                attachmentUri = attachmentUri,
-                activities = listOf(
-                    TicketActivity(
-                        id = UUID.randomUUID().toString(),
-                        title = "Tiket dibuat",
-                        actor = user.name,
-                        timestamp = now
-                    )
+        val now = currentTimestamp()
+        val newTicket = Ticket(
+            id = "T-${Random.nextInt(1000, 9999)}",
+            title = title.trim(),
+            description = description.trim(),
+            status = TicketStatus.OPEN,
+            createdAt = now,
+            applicantId = user.id,
+            applicant = user.name,
+            attachmentSource = attachmentSource,
+            attachmentName = attachmentName?.trim()?.takeIf { it.isNotEmpty() },
+            attachmentUri = attachmentUri,
+            activities = listOf(
+                TicketActivity(
+                    id = UUID.randomUUID().toString(),
+                    title = "Tiket dibuat",
+                    actor = user.name,
+                    timestamp = now
                 )
             )
+        )
+        runTicketAction("membuat tiket") {
             repository.createTicket(newTicket)
+        }
+    }
+
+    /**
+     * Menjalankan aksi tiket (yang menulis ke Supabase) dengan aman.
+     * Jika repository melempar exception (mis. constraint DB, jaringan),
+     * ditangkap di sini agar aplikasi TIDAK force-close — cukup tampil pesan.
+     */
+    private fun runTicketAction(errorContext: String, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: Exception) {
+                _authMessage.value = AuthMessage.error(
+                    "Gagal $errorContext. ${e.message ?: "Periksa koneksi / database."}"
+                )
+            }
         }
     }
 
@@ -295,7 +325,7 @@ class TicketViewModel(
             return
         }
 
-        viewModelScope.launch {
+        runTicketAction("menugaskan helpdesk") {
             repository.assignTicket(id, assignee, actor.name)
         }
     }
@@ -312,7 +342,7 @@ class TicketViewModel(
             return
         }
 
-        viewModelScope.launch {
+        runTicketAction("menerima tiket") {
             repository.acceptTicket(id, actor.name)
         }
     }
@@ -331,7 +361,7 @@ class TicketViewModel(
             return
         }
 
-        viewModelScope.launch {
+        runTicketAction("menyelesaikan tiket") {
             repository.finishTicket(id, actor.name)
         }
     }
@@ -341,25 +371,25 @@ class TicketViewModel(
         val cleanMessage = message.trim()
         if (cleanMessage.isEmpty()) return
 
-        viewModelScope.launch {
-            val comment = Comment(
-                id = UUID.randomUUID().toString(),
-                sender = actor.name,
-                message = cleanMessage,
-                timestamp = currentTimestamp()
-            )
+        val comment = Comment(
+            id = UUID.randomUUID().toString(),
+            sender = actor.name,
+            message = cleanMessage,
+            timestamp = currentTimestamp()
+        )
+        runTicketAction("menambah komentar") {
             repository.addComment(ticketId, comment)
         }
     }
 
     fun markNotificationAsRead(notificationId: String) {
-        viewModelScope.launch {
+        runTicketAction("memperbarui notifikasi") {
             repository.markNotificationAsRead(notificationId)
         }
     }
 
     fun markAllNotificationsAsRead() {
-        viewModelScope.launch {
+        runTicketAction("memperbarui notifikasi") {
             repository.markAllNotificationsAsRead()
         }
     }
@@ -374,7 +404,7 @@ class TicketViewModel(
 
     // ---------------------------------------------------------------------
     // Manajemen Pengguna (SRS FR-007 #7) — hanya ADMIN.
-    // Mengikuti pola register(): sumber data tunggal _registeredUsers.
+    // Perubahan dipersist ke Supabase lewat repository; registeredUsers ikut ter-refresh.
     // ---------------------------------------------------------------------
 
     /** Prefix id mengikuti role agar konsisten dengan seed (U-/H-/A-). */
@@ -416,7 +446,7 @@ class TicketViewModel(
             return false
         }
 
-        val users = _registeredUsers.value
+        val users = registeredUsers.value
         if (users.any { it.username.equals(username.trim(), ignoreCase = true) }) {
             _authMessage.value = AuthMessage.error("Username sudah dipakai.")
             return false
@@ -434,8 +464,14 @@ class TicketViewModel(
             password = password,
             role = role
         )
-        _registeredUsers.value = users + newUser
         _authMessage.value = AuthMessage.success("Pengguna ${newUser.name} (${roleLabel(role)}) ditambahkan.")
+        viewModelScope.launch {
+            try {
+                repository.createUser(newUser)
+            } catch (e: Exception) {
+                _authMessage.value = AuthMessage.error("Gagal menyimpan pengguna: ${e.message ?: "coba lagi"}")
+            }
+        }
         return true
     }
 
@@ -443,16 +479,20 @@ class TicketViewModel(
     fun updateUserRole(userId: String, newRole: UserRole): Boolean {
         if (!requireAdmin("mengubah role pengguna")) return false
 
-        val users = _registeredUsers.value
+        val users = registeredUsers.value
         val target = users.find { it.id == userId }
         if (target == null) {
             _authMessage.value = AuthMessage.error("Pengguna tidak ditemukan.")
             return false
         }
-        _registeredUsers.value = users.map {
-            if (it.id == userId) it.copy(role = newRole) else it
-        }
         _authMessage.value = AuthMessage.success("Role ${target.name} diubah menjadi ${roleLabel(newRole)}.")
+        viewModelScope.launch {
+            try {
+                repository.updateUserRole(userId, newRole)
+            } catch (e: Exception) {
+                _authMessage.value = AuthMessage.error("Gagal mengubah role: ${e.message ?: "coba lagi"}")
+            }
+        }
         return true
     }
 
@@ -464,14 +504,20 @@ class TicketViewModel(
             _authMessage.value = AuthMessage.error("Tidak dapat menghapus akun sendiri.")
             return false
         }
-        val users = _registeredUsers.value
+        val users = registeredUsers.value
         val target = users.find { it.id == userId }
         if (target == null) {
             _authMessage.value = AuthMessage.error("Pengguna tidak ditemukan.")
             return false
         }
-        _registeredUsers.value = users.filterNot { it.id == userId }
         _authMessage.value = AuthMessage.success("Pengguna ${target.name} dihapus.")
+        viewModelScope.launch {
+            try {
+                repository.deleteUser(userId)
+            } catch (e: Exception) {
+                _authMessage.value = AuthMessage.error("Gagal menghapus pengguna: ${e.message ?: "coba lagi"}")
+            }
+        }
         return true
     }
 

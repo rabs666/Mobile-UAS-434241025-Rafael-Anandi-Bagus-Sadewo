@@ -24,6 +24,8 @@ class SupabaseTicketRepository(
 
     private val ticketsFlow = MutableStateFlow<List<Ticket>>(emptyList())
     private val notificationsFlow = MutableStateFlow<List<AppNotification>>(emptyList())
+    // Di-seed sebagai fallback agar akun demo tetap bisa login walau Supabase belum termuat/offline.
+    private val usersFlow = MutableStateFlow<List<AppUser>>(seedUsers())
     private val scope = CoroutineScope(Dispatchers.IO)
 
     init {
@@ -36,6 +38,18 @@ class SupabaseTicketRepository(
                 // Fetch Users for resolving names
                 val users = supabase.postgrest["users"].select().decodeList<UserDto>()
                 val userMap = users.associateBy { it.id }
+
+                // Simpan daftar user (untuk login & manajemen pengguna)
+                usersFlow.value = users.map { u ->
+                    AppUser(
+                        id = u.id,
+                        name = u.name,
+                        username = u.username,
+                        email = u.email,
+                        password = u.password,
+                        role = try { UserRole.valueOf(u.role) } catch (e: Exception) { UserRole.USER }
+                    )
+                }
 
                 // Fetch Tickets
                 val ticketsDto = supabase.postgrest["tickets"].select().decodeList<TicketDto>()
@@ -101,6 +115,41 @@ class SupabaseTicketRepository(
     }
 
     override fun getNotifications(): Flow<List<AppNotification>> = notificationsFlow
+
+    override fun getUsers(): Flow<List<AppUser>> = usersFlow
+
+    override suspend fun createUser(user: AppUser) {
+        @Serializable
+        data class UserInsert(
+            val id: String,
+            val name: String,
+            val username: String,
+            val email: String,
+            val password: String,
+            val role: String
+        )
+        // created_at diisi otomatis oleh DEFAULT NOW() di Supabase
+        supabase.postgrest["users"].insert(
+            UserInsert(user.id, user.name, user.username, user.email, user.password, user.role.name)
+        )
+        refreshData()
+    }
+
+    override suspend fun updateUserRole(id: String, role: UserRole) {
+        @Serializable
+        data class RoleUpdate(val role: String)
+        supabase.postgrest["users"].update(RoleUpdate(role.name)) {
+            filter { eq("id", id) }
+        }
+        refreshData()
+    }
+
+    override suspend fun deleteUser(id: String) {
+        supabase.postgrest["users"].delete {
+            filter { eq("id", id) }
+        }
+        refreshData()
+    }
 
     override suspend fun createTicket(ticket: Ticket) {
         val dto = TicketDto(
@@ -233,4 +282,15 @@ class SupabaseTicketRepository(
     private fun now(): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
     }
+
+    // Fallback akun demo (identik dengan seed di tabel users Supabase) agar
+    // login tetap berfungsi saat data Supabase belum termuat / offline.
+    private fun seedUsers(): List<AppUser> = listOf(
+        AppUser("U-001", "Ahmad Dani", "ahmad", "ahmad@campus.ac.id", "123456", UserRole.USER),
+        AppUser("U-002", "Siti Aminah", "siti", "siti@campus.ac.id", "123456", UserRole.USER),
+        AppUser("U-003", "Budi Utomo", "budi", "budi@campus.ac.id", "123456", UserRole.USER),
+        AppUser("H-001", "Rina Helpdesk", "helpdesk", "helpdesk@campus.ac.id", "123456", UserRole.HELPDESK),
+        AppUser("H-002", "Arif Helpdesk", "arif", "arif@campus.ac.id", "123456", UserRole.HELPDESK),
+        AppUser("A-001", "Admin UTS", "admin", "admin@campus.ac.id", "123456", UserRole.ADMIN)
+    )
 }
